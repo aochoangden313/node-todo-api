@@ -1,4 +1,4 @@
-const MongoClient = require('mongodb').MongoClient;
+const { MongoClient, ObjectID } = require('mongodb');
 
 // Version mongodb >= 3.0 need to change to this syntax not '(err, db) ==> (err, client)'
 MongoClient.connect('mongodb://localhost:27017/TodoApp', (err, client) => {
@@ -9,29 +9,27 @@ MongoClient.connect('mongodb://localhost:27017/TodoApp', (err, client) => {
 
     const db = client.db('TodoApp');
 
-    db.collection('Todos').insertOne({
-        text: 'Something to do',
-        completed: false,
-    }, (err, result) => {
-        if (err) {
-            return console.log('Unable to insert todo', err);
-        }
-        console.log('Insert to Todos sucessfully');
-        console.log(JSON.stringify(result.ops, undefined, 2));
-    })
+    // Query return document from 'Users' Collection by id
+    // const collection = db.collection('Users');
+    // collection.find({
+    //     _id: new ObjectID('5baa4c06c7e66313d4f15fc4')
+    // }).toArray((err, docs) => {
+    //     if (err) {
+    //         console.log(`Can't query from Users collection`);
+    //         return;
+    //     }
+    //     console.log(docs);
+    // });
 
-    // Insert new doc into Usres (name, age, location)
-    db.collection('Users').insertOne({
-        name: 'Quan Le Van',
-        age: 26,
-        location: 'Ha Noi',
-    }, (err, result) => {
+    // Query return all document from 'Users' Collection 
+    const collection = db.collection('Users');
+    collection.find({age: 26}).toArray((err, docs) => {
         if (err) {
-            return console.log('Unable to insert todo', err);
+            console.log(`Can't query from Users collection`);
+            return;
         }
-        console.log('Insert to Users sucessfully');
-        console.log(JSON.stringify(result.ops, undefined, 2));
+        console.log(docs);
     });
 
-    client.close();
+    // client.close();
 });
