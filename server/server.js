@@ -41,7 +41,7 @@ app.get('/todos/:id', (req, res) => {
         return res.status(404).send({});
     }
 
-    // QUery with inputed ID
+    // Delete with inputed ID
     Todo.findById(id).then((doc) => {
         if (!doc) {
             return res.status(404).send({});
