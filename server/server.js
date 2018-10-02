@@ -1,11 +1,12 @@
 
-var express = require('express');
-var bodyParser = require('body-parser');
+const express = require('express');
+const bodyParser = require('body-parser');
+const _ = require('lodash');
 
-var {mongoose} = require('./db/mongoose');
-var { Todo } = require('./models/todo');
-var User = require('./models/user');
-var { ObjectID } = require('mongodb');
+const { mongoose } = require('./db/mongoose');
+const { Todo } = require('./models/todo');
+const User = require('./models/user');
+const { ObjectID } = require('mongodb');
 
 const port = process.env.PORT || 3000;
 
@@ -71,8 +72,46 @@ app.delete('/todos/:id', (req, res) => {
     })
 });
 
+// Update todo object by id
+app.patch('/todos/:id', (req, res) => {
+    const id = req.params.id;
+
+    if (!ObjectID.isValid(id)) {
+        return res.status(404).send({});
+    }
+
+    // Only allow user update some fields like: text, compeleted
+    // Do not allow user update filed: completedAt
+    // Using function: _pick() on lodash lib to creates an object composed of the picked object properties.
+    let body = _.pick(req.body, ['text', 'completed']);
+
+    console.log('body');
+    console.log(body);
+    // Set completedAt attribute with current time
+    if (_.isBoolean(body.completed) && body.completed) {
+        body.completedAt = new Date().getTime();
+    } else {
+        body.completed = false;
+        body.completedAt = null;
+    }
+
+    Todo.findByIdAndUpdate(id, {
+        $set: body
+    }, {
+        new: true
+    }).then((todo) => {
+        if (!todo) {
+            return res.status(404).send();
+        }
+
+        res.send(todo);
+    }).catch((e) => {
+        return res.status(400).send();
+    });
+});
+
 app.listen(port, () => {
     console.log(`Started up on port ${port}`);
 });
 
-module.exports = {app};
+module.exports = { app };
