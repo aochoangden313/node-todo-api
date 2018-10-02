@@ -84,9 +84,7 @@ app.patch('/todos/:id', (req, res) => {
     // Do not allow user update filed: completedAt
     // Using function: _pick() on lodash lib to creates an object composed of the picked object properties.
     let body = _.pick(req.body, ['text', 'completed']);
-
-    console.log('body');
-    console.log(body);
+  
     // Set completedAt attribute with current time
     if (_.isBoolean(body.completed) && body.completed) {
         body.completedAt = new Date().getTime();
