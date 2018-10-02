@@ -1,5 +1,6 @@
 const expect = require('expect');
 const request = require('supertest');
+const _ = require('lodash');
 
 const { app } = require('./../server');
 const { Todo } = require('./../models/todo');
@@ -8,11 +9,13 @@ const { ObjectID } = require('mongodb');
 var todos = [
   {
     _id: new ObjectID(),
-    text: 'this is text 1'
+    text: 'First todo test item',
+    completed: true,
+    complatedAt: 333,
   },
   {
     _id: new ObjectID(),
-    text: 'this is text 2'
+    text: 'Second todo test item',
   }
 ];
 
@@ -156,5 +159,66 @@ describe('DELTE /todos/:id', () => {
       .expect(404)
       .end(done);
 
+  });
+});
+
+describe('PATCH /todos/:id', () => {
+  it('Should update the todo', (done) => {
+    // Grab id of first item
+    // update text, set completed true
+    // 200
+    // Text is changed, completed is true, completedAt is a number .toBeA
+    var todoId = new ObjectID(todos[0]._id).toHexString();
+    var updatedText = 'This is updated text';
+
+    var reqObj = _.pick(todos[0], ['_id', 'text', 'completed', 'completedAt']);
+    reqObj.text = updatedText;
+
+    request(app)
+      .patch(`/todos/${todoId}`)
+      .send(reqObj)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.completed).toBe(true);
+        expect(res.body.completedAt).toBeA('number');
+
+        Todo.findById(todoId).then((doc) => {
+          expect(doc.completed).toBe(true);
+          expect(doc.completedAt).toBeA('number');
+          expect(doc.text).toBeA(updatedText);
+        }, (err) => {
+          return done(err);
+        })
+      }).end(done);
+
+  });
+
+  it('Should clear completedAt when todo is not completed', (done) => {
+    // Grab id of second todo item
+    // Update text, set completed to false
+    // 200
+    // Text is changed, completed false, completedAt is null .toNotExist
+    var todoId = new ObjectID(todos[1]._id).toHexString();
+    var updatedText = 'This is updated text';
+
+    var reqObj = _.pick(todos[1], ['_id', 'text', 'completed', 'completedAt']);
+    reqObj.text = updatedText;
+
+    request(app)
+    .patch(`/todos/${todoId}`)
+    .send(reqObj)
+    .expect(200)
+    .expect((res) => {
+      expect(res.body.completed).toBe(false);
+      expect(res.body.completedAt).toNotExist();
+
+      Todo.findById(todoId).then((doc) => {
+        expect(doc.completed).toBe(false);
+        expect(doc.completedAt).toNotExist();
+        expect(doc.text).toBeA(updatedText);
+      }, (err) => {
+        return done(err);
+      })
+    }).end(done);
   });
 });
