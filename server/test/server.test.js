@@ -106,7 +106,7 @@ describe('GET /todos/:id', () => {
 
 });
 
-describe('DELTE /todos/:id', () => {
+describe('DELETE /todos/:id', () => {
   it('It should remove todo object', (done) => {
     var todoId = todos[1]._id.toHexString();
 
