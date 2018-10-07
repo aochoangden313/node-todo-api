@@ -7,7 +7,7 @@ const _ = require('lodash');
 
 const { mongoose } = require('./db/mongoose');
 const { Todo } = require('./models/todo');
-const User = require('./models/user');
+const { User } = require('./models/user');
 const { ObjectID } = require('mongodb');
 
 const port = process.env.PORT;
@@ -108,6 +108,18 @@ app.patch('/todos/:id', (req, res) => {
         return res.status(400).send();
     });
 });
+
+// POST /users
+app.post('/users', (req, res) => {
+    // Pickup attribute ['email', 'password', 'tokens'] to validate and save to db
+    let body = _.pick(req.body, ['email', 'password', 'tokens']);
+    let user = new User(body);
+    user.save().then((doc) => {
+        res.send(doc);
+    }).catch((e) => {
+        res.status(400).send(e);
+    });
+})
 
 app.listen(port, () => {
     console.log(`Started up on port ${port}`);
