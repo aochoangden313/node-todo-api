@@ -4,26 +4,13 @@ const _ = require('lodash');
 
 const { app } = require('./../server');
 const { Todo } = require('./../models/todo');
+const { User } = require('./../models/user');
 const { ObjectID } = require('mongodb');
 
-var todos = [
-  {
-    _id: new ObjectID(),
-    text: 'First todo test item',
-    completed: true,
-    complatedAt: 333,
-  },
-  {
-    _id: new ObjectID(),
-    text: 'Second todo test item',
-  }
-];
+const {todos, populateTodos, users, populateUsers} = require('./seed/seed');
 
-beforeEach((done) => {
-  Todo.remove({}).then(() => {
-    Todo.insertMany(todos);
-  }).then(() => done());
-});
+beforeEach(populateTodos);
+beforeEach(populateUsers);
 
 describe('POST /todos', () => {
   it('should create a new todo', (done) => {
@@ -89,7 +76,7 @@ describe('GET /todos/:id', () => {
       }).end(done);
   });
 
-  it('Sholud return 404 if todo not found', (done) => {
+  it('Should return 404 if todo not found', (done) => {
     var todoId = new ObjectID().toHexString();
     request(app)
       .get(`/todos/${todoId}`)
@@ -97,7 +84,7 @@ describe('GET /todos/:id', () => {
       .end(done);
   });
 
-  it('Sholud return 404 for non-object ids', (done) => {
+  it('Should return 404 for non-object ids', (done) => {
     request(app)
       .get(`/todos/123`)
       .expect(404)
@@ -131,7 +118,7 @@ describe('DELETE /todos/:id', () => {
       })
   });
 
-  it('Sholud return 404 if todo not found', (done) => {
+  it('Should return 404 if todo not found', (done) => {
     var todoId = '5bb2ad3f5382d409ec728111';
     request(app)
       .delete(`/todos/${todoId}`)
@@ -152,7 +139,7 @@ describe('DELETE /todos/:id', () => {
       });
   });
 
-  it('Sholud return 404 for non-object ids', (done) => {
+  it('Should return 404 for non-object ids', (done) => {
     var todoId = '5bb2ad3f5382d409';
     request(app)
       .delete(`/todos/${todoId}`)
@@ -220,5 +207,84 @@ describe('PATCH /todos/:id', () => {
         return done(err);
       })
     }).end(done);
+  });
+});
+
+describe('GET /users/me', () => {
+  it('should return user if authenticated', (done) => {
+    request(app)
+    .get('/users/me')
+    .set('x-auth', users[0].tokens[0].token)
+    .expect(200)
+    .expect((res) => {
+      expect(res.body._id).toBe(users[0]._id.toHexString());
+      expect(res.body.email).toBe(users[0].email);
+    }).end(done);
+  });
+
+  it('should return 401 if user is not authenticated', (done) => {
+    request(app)
+    .get('/users/me')
+    .expect(401)
+    .expect((res) => {
+      expect(res.body).toEqual({});
+    }).end(done);
+  });
+
+});
+
+describe('POST /users', () => {
+  it('Should create user', (done) => {
+    var email = 'hello123@google.com';
+    var password = '1234567';
+
+    request(app)
+      .post('/users')
+      .send({email, password})
+      .expect(200)
+      .expect((res) => {
+        // Check if server return auth token or not
+        expect(res.header['x-auth']).toExist();
+        expect(res.body._id).toExist();
+        expect(res.body.email).toBe(email);
+      })
+      .end((err) => {
+        if (err) {
+          return done(err);
+        }
+
+        User.findOne({email}).then((user) => {
+          if (!user) {
+            return done();
+          }
+          expect(password).toNotBe(user.password);
+          done();
+        }, (err) => {
+          done(err);
+        })
+      });
+
+  });
+
+  it('Should return validation errors if request is invalid', (done) => {
+    var email = 'hello1234@google.com';
+    var password = '567';
+
+    request(app)
+    .post('/users')
+    .send({email, password})
+    .expect(400)
+    .end(done);
+  });
+
+  it('Should not create user if email is in use', (done) => {
+    var email = users[0].email;
+    var password = '567';
+
+    request(app)
+    .post('/users')
+    .send({email, password})
+    .expect(400)
+    .end(done);
   });
 });
