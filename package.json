@@ -22,6 +22,7 @@
     "mongodb": "^2.2.5",
     "mongoose": "^4.5.9",
     "nodemon": "^1.10.2",
-    "supertest": "^2.0.0"
+    "supertest": "^2.0.0",
+    "validator": "^10.8.0"
   }
 }
