@@ -9,7 +9,9 @@ const { mongoose } = require('./db/mongoose');
 const { Todo } = require('./models/todo');
 const { User } = require('./models/user');
 const { ObjectID } = require('mongodb');
-const { authenticate} = require('./middleware');
+const { authenticate } = require('./middleware');
+
+const bcrypt = require('bcryptjs');
 
 const port = process.env.PORT;
 
@@ -86,7 +88,7 @@ app.patch('/todos/:id', (req, res) => {
     // Do not allow user update filed: completedAt
     // Using function: _pick() on lodash lib to creates an object composed of the picked object properties.
     let body = _.pick(req.body, ['text', 'completed']);
-  
+
     // Set completedAt attribute with current time
     if (_.isBoolean(body.completed) && body.completed) {
         body.completedAt = new Date().getTime();
@@ -98,16 +100,16 @@ app.patch('/todos/:id', (req, res) => {
     Todo.findByIdAndUpdate(id, {
         $set: body
     }, {
-        new: true
-    }).then((todo) => {
-        if (!todo) {
-            return res.status(404).send();
-        }
+            new: true
+        }).then((todo) => {
+            if (!todo) {
+                return res.status(404).send();
+            }
 
-        res.send(todo);
-    }).catch((e) => {
-        return res.status(400).send();
-    });
+            res.send(todo);
+        }).catch((e) => {
+            return res.status(400).send();
+        });
 });
 
 // POST /users
@@ -123,12 +125,32 @@ app.post('/users', (req, res) => {
     }).catch((e) => {
         res.status(400).send(e);
     });
-})
+});
 
 // Get user
 app.get('/users/me', authenticate, (req, res) => {
     res.send(req.user);
-})
+});
+
+// POST /users/login {email, password}
+// Return user's email, password if login sucessfully
+// Return 404 not found if login un-successfully
+app.post('/users/login', (req, res) => {
+    let body = _.pick(req.body, ['email', 'password']);
+
+    User.findByCredentials(body.email, body.password).then((user) => {
+        if (!user) {
+            return res.status(400).send({});
+        }
+        return user.generateAuthToken().then((token) => {
+            res.header('x-auth', token).send(user);
+        });
+    })
+    .catch((e) => {
+        res.status(400).send(e);
+    })
+});
+
 
 app.listen(port, () => {
     console.log(`Started up on port ${port}`);
