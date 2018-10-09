@@ -71,6 +71,32 @@ UserSchema.statics.findByToken = function (token) {
     });
 };
 
+UserSchema.statics.findByCredentials = function (email, password) {
+    // Find user in the DB with email like input
+    // If this user exist, get user's password and comparing with inputed password using brypt.compare
+    // If it match, return user with Id and email --> return promise resolve
+    // If it doensn't match --> return promise reject
+
+    var User = this;
+    return User.findOne({email}).then((user) => {
+        if (!user) {
+            return Promise.reject();
+        }
+
+        return new Promise((resolve, reject) => {
+            bcrypt.compare(password, user.password, (e, result) => {
+                if (!result) {
+                    reject({});
+                } else {
+                    resolve(user);
+                }
+            })
+        });
+    }).catch((err) => {
+        Promise.reject();
+    });
+};
+
 UserSchema.pre('save', function(next) {
     var user = this;
 
