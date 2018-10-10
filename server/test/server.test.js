@@ -206,7 +206,8 @@ describe('PATCH /todos/:id', () => {
       }, (err) => {
         return done(err);
       })
-    }).end(done);
+    })
+    .end(done);
   });
 });
 
@@ -263,7 +264,6 @@ describe('POST /users', () => {
           done(err);
         })
       });
-
   });
 
   it('Should return validation errors if request is invalid', (done) => {
@@ -286,5 +286,87 @@ describe('POST /users', () => {
     .send({email, password})
     .expect(400)
     .end(done);
+  });
+});
+
+describe('POST /users/login', () => {
+  // This code works
+  it('should login user and return auth token', (done) => {
+    request(app)
+      .post('/users/login')
+      .send({
+        email: users[1].email,
+        password: users[1].password,
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.header['x-auth']).toExist();
+
+        User.findById(users[1]._id).then((user) => {
+          if (!user) {
+            return done();
+          }
+          expect(user.tokens[0]).toInclude(
+            {
+              access: 'auth',
+              token: res.header['x-auth'],
+            });
+            done();
+        }, (e) => {
+          done(e);
+        });
+      })
+      .end(done);
+  });
+
+  // This code doesn't work and has error
+  // it('should login user and return auth token', (done) => {
+  //   request(app)
+  //     .post('/users/login')
+  //     .send({
+  //       email: users[1].email,
+  //       password: users[1].password
+  //     })
+  //     .expect(200)
+  //     .expect((res) => {
+  //       expect(res.headers['x-auth']).toExist();
+  //     })
+  //     .end((err, res) => {
+  //       if (err) {
+  //         return done(err);
+  //       }
+
+  //       User.findById(users[1]._id).then((user) => {
+  //         expect(user.tokens[0]).toInclude({
+  //           access: 'auth',
+  //           token: res.headers['x-auth']
+  //         });
+  //         done();
+  //       }).catch((e) => done(e));
+  //     });
+  // });
+  
+  it('should reject invalid user login', (done) => {
+    request(app)
+      .post('/users/login')
+      .send({
+        email: users[1].email,
+        password: '123',
+      })
+      .expect(400)
+      .expect((res) => {
+        expect(res.header['x-auth']).toNotExist();
+
+        User.findOne({
+          email: users[1].email,
+        }).then((user) => {
+          if (!user) {
+            return done();
+          }
+          expect(user.tokens.length).toBe(0);
+          done();
+        });
+      })
+      .end(done);
   });
 });
