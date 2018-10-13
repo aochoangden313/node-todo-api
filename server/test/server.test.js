@@ -213,6 +213,7 @@ describe('PATCH /todos/:id', () => {
       Todo.findById(todoId).then((doc) => {
         expect(doc.completed).toBe(false);
         expect(doc.completedAt).toNotExist();
+
         expect(doc.text).toEqual(updatedText);
       }).catch((e) => {
         done(e);
