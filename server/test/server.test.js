@@ -18,6 +18,7 @@ describe('POST /todos', () => {
 
     request(app)
       .post('/todos')
+      .set('x-auth', users[0].tokens[0].token)
       .send({ text })
       .expect(200)
       .expect((res) => {
@@ -39,6 +40,7 @@ describe('POST /todos', () => {
   it('should not create todo with invalid body data', (done) => {
     request(app)
       .post('/todos')
+      .set('x-auth', users[0].tokens[0].token)
       .send({})
       .expect(400)
       .end((err, res) => {
@@ -58,9 +60,10 @@ describe('GET /todos', () => {
   it('should return list of todo', (done) => {
     request(app)
       .get('/todos')
+      .set('x-auth', users[0].tokens[0].token)
       .expect(200)
       .expect((res) => {
-        expect(res.body.length).toBe(2);
+        expect(res.body.length).toBe(1);
       })
       .end(done);
   });
@@ -70,6 +73,7 @@ describe('GET /todos/:id', () => {
   it('It should return todo object', (done) => {
     request(app)
       .get(`/todos/${todos[0]._id.toHexString()}`)
+      .set('x-auth', users[0].tokens[0].token)
       .expect(200)
       .expect((res) => {
         expect(res.body.text).toBe(todos[0].text);
@@ -79,7 +83,8 @@ describe('GET /todos/:id', () => {
   it('Should return 404 if todo not found', (done) => {
     var todoId = new ObjectID().toHexString();
     request(app)
-      .get(`/todos/${todoId}`)
+    .get(`/todos/${todoId}`)
+    .set('x-auth', users[0].tokens[0].token)
       .expect(404)
       .end(done);
   });
@@ -87,6 +92,7 @@ describe('GET /todos/:id', () => {
   it('Should return 404 for non-object ids', (done) => {
     request(app)
       .get(`/todos/123`)
+      .set('x-auth', users[0].tokens[0].token)
       .expect(404)
       .end(done);
   });
@@ -95,10 +101,11 @@ describe('GET /todos/:id', () => {
 
 describe('DELETE /todos/:id', () => {
   it('It should remove todo object', (done) => {
-    var todoId = todos[1]._id.toHexString();
+    var todoId = todos[0]._id.toHexString();
 
     request(app)
       .delete(`/todos/${todoId}`)
+      .set('x-auth', users[0].tokens[0].token)
       .expect(200)
       .expect((res) => {
         expect(res.body._id).toBe(todoId);
@@ -122,6 +129,7 @@ describe('DELETE /todos/:id', () => {
     var todoId = '5bb2ad3f5382d409ec728111';
     request(app)
       .delete(`/todos/${todoId}`)
+      .set('x-auth', users[0].tokens[0].token)
       .expect(404)
       .end((err, res) => {
         if (err) {
@@ -143,6 +151,7 @@ describe('DELETE /todos/:id', () => {
     var todoId = '5bb2ad3f5382d409';
     request(app)
       .delete(`/todos/${todoId}`)
+      .set('x-auth', users[0].tokens[0].token)
       .expect(404)
       .end(done);
 
@@ -163,6 +172,7 @@ describe('PATCH /todos/:id', () => {
 
     request(app)
       .patch(`/todos/${todoId}`)
+      .set('x-auth', users[0].tokens[0].token)
       .send(reqObj)
       .expect(200)
       .expect((res) => {
@@ -172,12 +182,11 @@ describe('PATCH /todos/:id', () => {
         Todo.findById(todoId).then((doc) => {
           expect(doc.completed).toBe(true);
           expect(doc.completedAt).toBeA('number');
-          expect(doc.text).toBeA(updatedText);
-        }, (err) => {
-          return done(err);
-        })
+          expect(doc.text).toBe(updatedText);
+        }).catch((e) => {
+          done(e);
+        });
       }).end(done);
-
   });
 
   it('Should clear completedAt when todo is not completed', (done) => {
@@ -190,9 +199,11 @@ describe('PATCH /todos/:id', () => {
 
     var reqObj = _.pick(todos[1], ['_id', 'text', 'completed', 'completedAt']);
     reqObj.text = updatedText;
+    reqObj._creator = users[1]._id;
 
     request(app)
     .patch(`/todos/${todoId}`)
+    .set('x-auth', users[1].tokens[0].token)
     .send(reqObj)
     .expect(200)
     .expect((res) => {
@@ -202,10 +213,11 @@ describe('PATCH /todos/:id', () => {
       Todo.findById(todoId).then((doc) => {
         expect(doc.completed).toBe(false);
         expect(doc.completedAt).toNotExist();
-        expect(doc.text).toBeA(updatedText);
-      }, (err) => {
-        return done(err);
-      })
+
+        expect(doc.text).toEqual(updatedText);
+      }).catch((e) => {
+        done(e);
+      });
     })
     .end(done);
   });

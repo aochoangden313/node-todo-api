@@ -22,7 +22,7 @@ const users = [{
     password: 'userTwoPass',
     tokens: [{
         access: 'auth',
-        token: jwt.sign({ _id: userOneId, access: 'auth' }, 'abc123').toString(),
+        token: jwt.sign({ _id: userTwoId, access: 'auth' }, 'abc123').toString(),
     }]
 }
 ];
@@ -33,10 +33,12 @@ const todos = [
         text: 'First todo test item',
         completed: true,
         complatedAt: 333,
+        _creator: userOneId,
     },
     {
         _id: new ObjectID(),
         text: 'Second todo test item',
+        _creator: userTwoId,
     }
 ];
 
