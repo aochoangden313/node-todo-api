@@ -18,9 +18,11 @@ const port = process.env.PORT;
 var app = express();
 app.use(bodyParser.json());
 
-app.post('/todos', (req, res) => {
+app.post('/todos', authenticate, (req, res) => {
+    var user = req.user;
     var todo = new Todo({
-        text: req.body.text
+        text: req.body.text,
+        _creator: user._id,
     });
 
     todo.save().then((doc) => {
@@ -30,8 +32,9 @@ app.post('/todos', (req, res) => {
     });
 });
 
-app.get('/todos', (req, res) => {
-    Todo.find().then((docs) => {
+app.get('/todos', authenticate, (req, res) => {
+    var user = req.user;
+    Todo.find({ _creator: user._id }).then((docs) => {
         res.send(docs);
     }, (error) => {
         res.status(400).send(err);
@@ -39,15 +42,22 @@ app.get('/todos', (req, res) => {
 });
 
 // Get todo object by id
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
     const id = req.params.id;
+    const reqUser = req.user;
 
     if (!ObjectID.isValid(id)) {
         return res.status(404).send({});
     }
 
-    // Delete with inputed ID
-    Todo.findById(id).then((doc) => {
+    // // Delete with inputed ID
+    // Todo.findById(id).then((doc) => {
+    // If using authenticate, we only find todo item which belong to exactly user
+    // Using findOne function
+    Todo.findOne({
+        _id: id,
+        _creator: reqUser._id,
+    }).then((doc) => {
         if (!doc) {
             return res.status(404).send({});
         }
@@ -58,15 +68,22 @@ app.get('/todos/:id', (req, res) => {
 });
 
 // Delete todo object by id
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
     const id = req.params.id;
+    const reqUser = req.user;
 
     if (!ObjectID.isValid(id)) {
         return res.status(404).send({});
     }
 
-    // Delete with inputed ID
-    Todo.findByIdAndRemove(id).then((doc) => {
+    // // Delete with inputed ID
+    // Todo.findByIdAndRemove(id).then((doc) => {
+    // If using authenticate, we only delete todo item which belong to exactly user
+    // Using findOne function
+    Todo.findOneAndRemove({
+        _id: id,
+        _creator: reqUser._id,
+    }).then((doc) => {
         if (!doc) {
             return res.status(404).send({});
         }
@@ -77,12 +94,14 @@ app.delete('/todos/:id', (req, res) => {
 });
 
 // Update todo object by id
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
     const id = req.params.id;
 
     if (!ObjectID.isValid(id)) {
         return res.status(404).send({});
     }
+
+    const reqUser = req.user;
 
     // Only allow user update some fields like: text, compeleted
     // Do not allow user update filed: completedAt
@@ -97,7 +116,12 @@ app.patch('/todos/:id', (req, res) => {
         body.completedAt = null;
     }
 
-    Todo.findByIdAndUpdate(id, {
+    // Todo.findByIdAndUpdate(_id: id, {
+    // If using authenticate, we only delete todo item which belong to exactly user
+    Todo.findOneAndUpdate({
+        _id: id,
+        _creator: reqUser._id,
+    }, {
         $set: body
     }, {
             new: true
@@ -146,22 +170,14 @@ app.post('/users/login', (req, res) => {
             res.header('x-auth', token).send(user);
         });
     })
-    .catch((e) => {
-        res.status(400).send(e);
-    })
+        .catch((e) => {
+            res.status(400).send(e);
+        })
 });
 
 app.delete('/users/me/token', authenticate, (req, res) => {
     var token = req.header['x-auth'];
 
-    // console.log('')
-    // User.removeToken(token).then(() => {
-    //     res.status(200).send();
-    // }, () => {
-    //     res.status(400).send();
-    // })
-
-    console.log(req);
     req.user.removeToken(req.token).then(() => {
         res.status(200).send();
     }, () => {
