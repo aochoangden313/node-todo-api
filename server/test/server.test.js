@@ -80,6 +80,14 @@ describe('GET /todos/:id', () => {
       }).end(done);
   });
 
+  it('It should not return todo object of other user', (done) => {
+    request(app)
+      .get(`/todos/${todos[0]._id.toHexString()}`)
+      .set('x-auth', users[1].tokens[0].token)
+      .expect(404)
+      .end(done);
+  });
+
   it('Should return 404 if todo not found', (done) => {
     var todoId = new ObjectID().toHexString();
     request(app)
@@ -118,6 +126,29 @@ describe('DELETE /todos/:id', () => {
         // Expect(null).toNotExist();
         Todo.findById(todoId).then((todo) => {
           expect(todo).toNotExist(todoId);
+          done();
+        }).catch((err) => {
+          done(err)
+        });
+      })
+  });
+
+  it('It should not remove todo object of other user', (done) => {
+    var todoId = todos[0]._id.toHexString();
+
+    request(app)
+      .delete(`/todos/${todoId}`)
+      .set('x-auth', users[1].tokens[0].token)
+      .expect(404)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        // Query on database using findById and toNotExist
+        // Expect(null).toNotExist();
+        Todo.findById(todoId).then((todo) => {
+          expect(todo).toExist();
           done();
         }).catch((err) => {
           done(err)
@@ -183,6 +214,33 @@ describe('PATCH /todos/:id', () => {
           expect(doc.completed).toBe(true);
           expect(doc.completedAt).toBeA('number');
           expect(doc.text).toBe(updatedText);
+        }).catch((e) => {
+          done(e);
+        });
+      }).end(done);
+  });
+
+  it('Should do not update the todo of other user', (done) => {
+    // Grab id of first item
+    // 404
+    // Text is not changed, completed is true, completedAt is a number .toBeA
+    var todoId = new ObjectID(todos[0]._id).toHexString();
+    var updatedText = 'This is updated text';
+
+    var reqObj = _.pick(todos[0], ['_id', 'text', 'completed', 'completedAt']);
+    reqObj.text = updatedText;
+
+    request(app)
+      .patch(`/todos/${todoId}`)
+      .set('x-auth', users[1].tokens[0].token)
+      .send(reqObj)
+      .expect(404)
+      .expect((res) => {
+
+        Todo.findById(todoId).then((doc) => {
+          expect(doc.completed).toBe(todos[0].completed);
+          expect(doc.completedAt).toNotExist();
+          expect(doc.text).toBe(todos[0].text);
         }).catch((e) => {
           done(e);
         });
