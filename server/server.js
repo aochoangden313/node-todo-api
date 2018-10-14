@@ -115,6 +115,7 @@ app.patch('/todos/:id', authenticate, (req, res) => {
         body.completed = false;
         body.completedAt = null;
     }
+
     // Todo.findByIdAndUpdate(_id: id, {
     // If using authenticate, we only delete todo item which belong to exactly user
     Todo.findOneAndUpdate({
