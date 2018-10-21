@@ -2,10 +2,10 @@
 // Therefore, we do not need to care about this env on the production environment 
 var env = process.env.NODE_ENV || 'development';
 
-if (env === 'development') {
-    process.env.PORT = 3000;
-    process.env.MONGODB_URI = 'mongodb://localhost:27017/TodoApp';
-} else if (env = 'test') {
-    process.env.PORT = 3000;
-    process.env.MONGODB_URI = 'mongodb://localhost:27017/TodoAppTest';
+if (env === 'development' || env === 'test') {
+    let configVariables = require('./config.json');
+
+    Object.keys(configVariables[env]).forEach((key) => {
+        process.env[key] = configVariables[env][key];
+    })
 }
